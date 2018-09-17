@@ -1,4 +1,3 @@
-//https://www.openprocessing.org/sketch/375565
 color bg, sc;
 float e = 110;
 float w = 60;
