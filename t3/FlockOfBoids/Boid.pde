@@ -1,5 +1,10 @@
-class Boid {
+import java.util.List;
+import java.util.Map;
+
+public class Boid {
   public Frame frame;
+  PShape boid;
+  int rep, render;
   // fields
   Vector position, velocity, acceleration, alignment, cohesion, separation; // position, velocity, and acceleration in
   // a vector datatype
@@ -9,11 +14,17 @@ class Boid {
   float sc = 3; // scale factor for the render of the boid
   float flap = 0;
   float t = 0;
-  //FaceVertexMesh
-  HashMap<Vertex, Integer[]> vertexList = new HashMap<Vertex, Integer[]>();
-  Face[] Facelist;
+  Face face1, face2, face3, face4;
+  Vector vertex1, vertex2, vertex3, vertex4;
+  //Creation of Face-Vertex data structure
+  List<Face> faces = new ArrayList<Face>();
+  List<Vector> vertices = new ArrayList<Vector>();
+  FV faceVertex;
+  VV vertexVertex;
   
-  Boid(Vector inPos) {
+  Boid(Vector inPos, int rep, int render) { //added representation and render mode to choose either FV/VV or Immediate/Retained
+    this.rep = rep;
+    this.render = render;
     position = new Vector();
     position.set(inPos);
     frame = new Frame(scene) {
@@ -30,6 +41,42 @@ class Boid {
     velocity = new Vector(random(-1, 1), random(-1, 1), random(1, -1));
     acceleration = new Vector(0, 0, 0);
     neighborhoodRadius = 100;
+  }
+  //representation builders
+  public void buildRep(){
+    if(this.rep == 0) { //if representation is Face-Vertex
+      Map<Vector, Face[]> neighbors = new HashMap<Vector, Face[]>();
+      Face[] f1 = {face2,face3,face4};
+      Face[] f2 = {face1,face3,face4};
+      Face[] f3 = {face1,face2,face4};
+      Face[] f4 = {face2,face3,face4};
+      neighbors.put(vertices.get(0), f1);
+      neighbors.put(vertices.get(1), f2);
+      neighbors.put(vertices.get(2), f3);
+      neighbors.put(vertices.get(3), f4);
+      faceVertex = new FV(faces, vertices, neighbors);
+      if(this.render == 1){
+        this.boid = faceVertex.retained();
+      } else if(this.render == 0){
+        faceVertex.immediate();
+        faceVertex = null;
+      }
+    }
+    if(this.rep == 1){
+        Map <Integer, Integer[]> neighbors = new HashMap<Integer, Integer[]>();
+        neighbors.put( 0, new Integer[]{1, 2, 3});
+        neighbors.put( 1, new Integer[]{0, 2, 3});
+        neighbors.put( 2, new Integer[]{0, 1, 3});
+        neighbors.put( 3, new Integer[]{0, 1, 2});
+        VV vertexVertex = new VV(vertices, neighbors);
+        if(this.render == 0){
+          vertexVertex.immediate();
+          vertexVertex = null;
+        }
+        else{
+          this.boid = vertexVertex.retained();
+      }
+    }
   }
 
   public void run(ArrayList<Boid> bl) {
@@ -132,7 +179,7 @@ class Boid {
     if (position.z() < 0)
       position.setZ(flockDepth);
   }
-
+  
   void render() {
     pushStyle();
 
@@ -154,52 +201,90 @@ class Boid {
       stroke(color(255, 0, 0));
       fill(color(255, 0, 0));
     }
+    //!!
+    vertex1 = new Vector(3 * sc, 0, 0);
+    vertex2 = new Vector(-3 * sc, 2 * sc, 0);
+    vertex3 = new Vector(-3 * sc, -2 * sc, 0);
+    vertex4 = new Vector(-3 * sc, 0, 2 * sc);
+    face1 = new Face(vertex1, vertex2, vertex3);
+    face2 = new Face(vertex1, vertex2, vertex4);
+    face3 = new Face(vertex1, vertex4, vertex3);
+    face4 = new Face(vertex4, vertex2, vertex3);
+    faces.add(face1);
+    faces.add(face2);
+    faces.add(face3);
+    faces.add(face4);
+    vertices.add(vertex1);
+    vertices.add(vertex2);
+    vertices.add(vertex3);
+    vertices.add(vertex4);
+    buildRep();
+    if(render == 1)
+      shape(boid);
+  }
+  void cubicHermitSplines3d(float x,float y,float z){
+    
+  }
+  double cubicHermitSplines1d(double y0,double y1,double y2,double y3,double mu,double tension, double bias){
+    double m0,m1,mu2,mu3;
+    double a0,a1,a2,a3;
+    
+    mu2 = mu * mu;
+    mu3 = mu2 * mu;
+    m0  = (y1-y0)*(1+bias)*(1-tension)/2;
+    m0 += (y2-y1)*(1-bias)*(1-tension)/2;
+    m1  = (y2-y1)*(1+bias)*(1-tension)/2;
+    m1 += (y3-y2)*(1-bias)*(1-tension)/2;
+    a0 =  2*mu3 - 3*mu2 + 1;
+    a1 =    mu3 - 2*mu2 + mu;
+    a2 =    mu3 -   mu2;
+    a3 = -2*mu3 + 3*mu2;
+    
+    return(a0*y1+a1*m0+a2*m1+a3*y2);
+ }
+
   
-    //draw boid
-    PShape triangle;
-    triangle = createShape(TRIANGLE, Facelist[0].vertexs[0].cor_x, Facelist[0].vertexs[0].cor_y, Facelist[0].vertexs[0].cor_z,
-    Facelist[0].vertexs[1].cor_x, Facelist[0].vertexs[1].cor_y, Facelist[0].vertexs[1].cor_z, 
-    Facelist[0].vertexs[2].cor_x, Facelist[0].vertexs[2].cor_y, Facelist[0].vertexs[2].cor_z);
-    shape(triangle);
-    /*beginShape(TRIANGLES);
-    vertex(3 * sc, 0, 0);
-    vertex(-3 * sc, 2 * sc, 0);
-    vertex(-3 * sc, -2 * sc, 0);
+  
+  void bezierCubicSplines(){
+  }
 
-    vertex(3 * sc, 0, 0);
-    vertex(-3 * sc, 2 * sc, 0);
-    vertex(-3 * sc, 0, 2 * sc);
-
-    vertex(3 * sc, 0, 0);
-    vertex(-3 * sc, 0, 2 * sc);
-    vertex(-3 * sc, -2 * sc, 0);
-
-    vertex(-3 * sc, 0, 2 * sc);
-    vertex(-3 * sc, 2 * sc, 0);
-    vertex(-3 * sc, -2 * sc, 0);
-    endShape();*/
-
-    popStyle();
+  Vector Bezier(Vector[] p,int n,float mu){
+     int k,kn,nn,nkn;
+     double blend,muk,munk;
+     
+     
+     muk = 1;
+     munk = pow(1-mu,(float)n);
+     float x1=0,x2=0,x3=0;
+     for (k=0;k<=n;k++) {
+        nn = n;
+        kn = k;
+        nkn = n - k;
+        blend = muk * munk;
+        muk *= mu;
+        munk /= (1-mu);
+        while (nn >= 1) {
+           blend *= nn;
+           nn--;
+           if (kn > 1) {
+              blend /= (double)kn;
+              kn--;
+           }
+           if (nkn > 1) {
+              blend /= (double)nkn;
+              nkn--;
+           }
+        }
+        
+        x1 += p[k].x() * blend;
+        x2 += p[k].y() * blend;
+        x3 += p[k].z() * blend;
+     }
+    Vector b = new Vector(x1,x2,x3) ;
+    return(b);
   }
 }
-class Vertex{
-  float cor_x;
-  float cor_y;
-  float cor_z;
-  Vertex(float x ,float y, float z){
-    cor_x = x;
-    cor_y = y;
-    cor_z = z;
-  }
-}
-class Face{
-  Vertex [] vertexs;
-  Face( Vertex v0, Vertex v1, Vertex v2){
-    vertexs[0] = v0;
-    vertexs[1] = v1;
-    vertexs[2] = v2;
-  }
-}
+<<<<<<< Updated upstream:t3/FlockOfBoids/Boid.pde
   
 //map.put("dog", "type of animal");
 //System.out.println(map.get("dog"));
@@ -449,3 +534,5 @@ class Boid {
   }
 }
 */
+=======
+>>>>>>> Stashed changes:t3/FlockOfBoids/FlockOfBoids/Boid.pde

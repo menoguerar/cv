@@ -20,11 +20,14 @@
  * Press 'm' to change the boid visual mode.
  * Press 'v' to toggle boids' wall skipping.
  * Press 's' to call scene.fitBallInterpolation().
+ * Press 'r' to switch between representations.
+ * Press 'f' to switch between rendering modes.
  */
 
 import frames.primitives.*;
 import frames.core.*;
 import frames.processing.*;
+
 
 Scene scene;
 //flock bounding box
@@ -32,8 +35,9 @@ static int flockWidth = 1280;
 static int flockHeight = 720;
 static int flockDepth = 600;
 static boolean avoidWalls = true;
-
-int initBoidNum = 900; // amount of boids to start the program with
+boolean render = false;
+boolean rep = false;
+int initBoidNum = 100; // amount of boids to start the program with
 ArrayList<Boid> flock;
 Frame avatar;
 boolean animate = true;
@@ -47,8 +51,15 @@ void setup() {
   scene.fitBall();
   // create and fill the list of boids
   flock = new ArrayList();
-  for (int i = 0; i < initBoidNum; i++)
+  /*
+  for (int i = 0; i < initBoidNum; i++){
     flock.add(new Boid(new Vector(flockWidth / 2, flockHeight / 2, flockDepth / 2)));
+  }
+  */
+  System.out.println("Press R to change representation: [True] Face-Vertex, [False] Vertex-Vertex : " + rep);
+  System.out.println("Press F to change render mode: [True] Immediate, [False] Retained : " + render);
+  init(rep);
+  System.gc();
 }
 
 void draw() {
@@ -61,6 +72,21 @@ void draw() {
   // updateAvatar(scene.trackedFrame("mouseClicked"));
 }
 
+void init(boolean rep){
+  //immediate
+  if(render == true){ 
+        for (int i = 0; i < initBoidNum; i++){
+            flock.add(new Boid(new Vector(flockWidth / 2, flockHeight / 2, flockDepth / 2), int(rep), 0));
+        }
+    }
+    //Retained
+    else{
+        for (int i = 0; i < initBoidNum; i++){          
+            flock.add(new Boid(new Vector(flockWidth / 2, flockHeight / 2, flockDepth / 2), int(rep), 1));
+        }  
+      }
+  
+}
 void walls() {
   pushStyle();
   noFill();
@@ -174,5 +200,15 @@ void keyPressed() {
     else if (avatar != null)
       thirdPerson();
     break;
+  case 'r':
+    rep = !rep;
+    System.out.println("Representation : " + rep);
+    break;
+  case 'f':
+    render = !render;
+    System.out.println("Render : " + render);
+    break;
+    
   }
+  
 }
