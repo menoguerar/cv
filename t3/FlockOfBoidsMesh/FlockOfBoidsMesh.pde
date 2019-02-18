@@ -1,4 +1,5 @@
 /**
+  ************************************FV & CURVES(BEZIER 7/3, HERMITE)***************************
  * Flock of Boids
  * by Jean Pierre Charalambos.
  *
@@ -20,27 +21,42 @@
  * Press 'm' to change the boid visual mode.
  * Press 'v' to toggle boids' wall skipping.
  * Press 's' to call scene.fitBallInterpolation().
- * Press 'r' to switch between representations.
- * Press 'f' to switch between rendering modes.
  */
 
+/*references 
+http://paulbourke.net/miscellaneous/interpolation/
+https://visualcomputing.github.io/Curves/#/5/6
+https://en.wikipedia.org/wiki/Cubic_Hermite_spline
+https://math.stackexchange.com/questions/799783/slope-of-a-line-in-3d-coordinate-system
+
+*/
 import frames.primitives.*;
 import frames.core.*;
 import frames.processing.*;
-
-
+import java.util.ArrayDeque;
+import java.util.Random;
+import java.util.Set;
+import java.util.LinkedHashSet;
+import java.util.concurrent.ThreadLocalRandom;
 Scene scene;
 //flock bounding box
+int initBoidNum = 600;
 static int flockWidth = 1280;
 static int flockHeight = 720;
 static int flockDepth = 600;
 static boolean avoidWalls = true;
-boolean render = false;
-boolean rep = false;
-int initBoidNum = 100; // amount of boids to start the program with
+CubicHermitCurve curveHermit;
+BezierCurve beziercurve;
+BezierCurve beziercurve3;
+Vector[] controlPoints = new Vector[initBoidNum];
+Vector[] controlPoints2 = new Vector[initBoidNum];
+Vector[] controlPoints3 = new Vector[initBoidNum];
+ // amount of boids to start the program with
 ArrayList<Boid> flock;
 Frame avatar;
 boolean animate = true;
+boolean retainedMode = true;
+boolean inFacevertex = true;
 
 void setup() {
   size(1000, 800, P3D);
@@ -51,42 +67,43 @@ void setup() {
   scene.fitBall();
   // create and fill the list of boids
   flock = new ArrayList();
-  /*
-  for (int i = 0; i < initBoidNum; i++){
-    flock.add(new Boid(new Vector(flockWidth / 2, flockHeight / 2, flockDepth / 2)));
-  }
-  */
-  System.out.println("Press R to change representation: [True] Face-Vertex, [False] Vertex-Vertex : " + rep);
-  System.out.println("Press F to change render mode: [True] Immediate, [False] Retained : " + render);
-  init(rep);
-  System.gc();
+  for (int i = 0; i < initBoidNum; i++)
+    flock.add(new Boid(new Vector(flockWidth / 2, flockHeight / 2, flockDepth / 2),1));
+  getControlPoints(7,controlPoints);
+  getControlPoints(7,controlPoints2);
+  getControlPoints(3, controlPoints3);
+  curveHermit = new CubicHermitCurve(7);
+  beziercurve = new BezierCurve(7);
+  beziercurve3 = new BezierCurve(3);
+  
 }
-
+int count = 0;
 void draw() {
   background(10, 50, 25);
   ambientLight(128, 128, 128);
   directionalLight(255, 255, 255, 0, 1, -100);
   walls();
+  curveHermit.cubicHermitSplines3d();
+  beziercurve.bezierCubicSplines();
+  beziercurve3.bezierCubicSplines();
   scene.traverse();
   // uncomment to asynchronously update boid avatar. See mouseClicked()
   // updateAvatar(scene.trackedFrame("mouseClicked"));
+  //count++;
+
+}
+void getControlPoints(int numbersNeeded,Vector[] controlPoints){
+  ArrayList<Integer>ids = new ArrayList<Integer>();
+ 
+  for (int i=0;i<numbersNeeded;i++){
+    int randomNum = ThreadLocalRandom.current().nextInt(0, initBoidNum );
+    while (ids.contains(randomNum)){
+      randomNum = ThreadLocalRandom.current().nextInt(0, initBoidNum );
+    }
+    controlPoints[i] = flock.get(randomNum).position; 
+  }
 }
 
-void init(boolean rep){
-  //immediate
-  if(render == true){ 
-        for (int i = 0; i < initBoidNum; i++){
-            flock.add(new Boid(new Vector(flockWidth / 2, flockHeight / 2, flockDepth / 2), int(rep), 0));
-        }
-    }
-    //Retained
-    else{
-        for (int i = 0; i < initBoidNum; i++){          
-            flock.add(new Boid(new Vector(flockWidth / 2, flockHeight / 2, flockDepth / 2), int(rep), 1));
-        }  
-      }
-  
-}
 void walls() {
   pushStyle();
   noFill();
@@ -194,21 +211,14 @@ void keyPressed() {
   case 'v':
     avoidWalls = !avoidWalls;
     break;
+  case 'r':
+    retainedMode = !retainedMode;
+    break;
   case ' ':
     if (scene.eye().reference() != null)
       resetEye();
     else if (avatar != null)
       thirdPerson();
     break;
-  case 'r':
-    rep = !rep;
-    System.out.println("Representation : " + rep);
-    break;
-  case 'f':
-    render = !render;
-    System.out.println("Render : " + render);
-    break;
-    
   }
-  
 }
